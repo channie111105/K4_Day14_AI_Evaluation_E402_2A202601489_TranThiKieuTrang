@@ -26,6 +26,7 @@ The reranking helper is an optional bonus exercise and may remain unimplemented.
 from __future__ import annotations
 
 import re
+import json
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -387,8 +388,7 @@ class LLMJudge:
     """
 
     def __init__(self, judge_llm_fn: Callable[[str], str]) -> None:
-        # TODO: store judge_llm_fn
-        pass
+        self.judge_llm_fn = judge_llm_fn
 
     def score_response(
         self,
@@ -420,8 +420,56 @@ class LLMJudge:
                 "reasoning": str,               # raw LLM explanation
             }
         """
-        # TODO
-        raise NotImplementedError("Implement score_response")
+        rubric_lines = "\n".join(
+            f"- {criterion}: {description}"
+            for criterion, description in rubric.items()
+        )
+        prompt = f"""Score the AI response using the rubric below.
+Return JSON with one numeric score from 0.0 to 1.0 for each rubric criterion.
+
+Question:
+{question}
+
+AI response:
+{answer}
+
+Rubric:
+{rubric_lines}
+
+JSON scores:"""
+        raw_response = self.judge_llm_fn(prompt)
+
+        def default_scores() -> dict[str, float]:
+            return {criterion: 0.5 for criterion in rubric}
+
+        try:
+            parsed = json.loads(raw_response)
+        except json.JSONDecodeError:
+            match = re.search(r"\{.*\}", raw_response, flags=re.DOTALL)
+            if not match:
+                return {"scores": default_scores(), "reasoning": raw_response}
+            try:
+                parsed = json.loads(match.group(0))
+            except json.JSONDecodeError:
+                return {"scores": default_scores(), "reasoning": raw_response}
+
+        if not isinstance(parsed, dict):
+            return {"scores": default_scores(), "reasoning": raw_response}
+
+        raw_scores = parsed.get("scores") if isinstance(parsed.get("scores"), dict) else parsed
+        scores: dict[str, float] = {}
+        for criterion in rubric:
+            value = raw_scores.get(criterion) if isinstance(raw_scores, dict) else None
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                scores[criterion] = 0.5
+                continue
+            score = float(value)
+            if score > 1.0 and score <= 5.0:
+                score = score / 5.0
+            scores[criterion] = max(0.0, min(1.0, score))
+
+        reasoning = parsed.get("reasoning") if isinstance(parsed.get("reasoning"), str) else raw_response
+        return {"scores": scores, "reasoning": reasoning}
 
     def detect_bias(self, scores_batch: list[dict[str, Any]]) -> dict[str, Any]:
         """
@@ -442,8 +490,46 @@ class LLMJudge:
                 "severity_bias":   bool,
             }
         """
-        # TODO
-        raise NotImplementedError("Implement detect_bias")
+        all_scores: list[float] = []
+        first_scores: list[float] = []
+        later_scores: list[float] = []
+
+        for index, item in enumerate(scores_batch):
+            scores = item.get("scores", {})
+            if not isinstance(scores, dict):
+                continue
+            numeric_scores = [
+                float(score)
+                for score in scores.values()
+                if not isinstance(score, bool) and isinstance(score, (int, float))
+            ]
+            if not numeric_scores:
+                continue
+            average = sum(numeric_scores) / len(numeric_scores)
+            all_scores.extend(numeric_scores)
+
+            position = item.get("position", item.get("response_position"))
+            if position in (1, "1", "first", "A", "a"):
+                first_scores.append(average)
+            elif position is not None:
+                later_scores.append(average)
+            elif index == 0 and len(scores_batch) > 1:
+                first_scores.append(average)
+            elif len(scores_batch) > 1:
+                later_scores.append(average)
+
+        average_score = sum(all_scores) / len(all_scores) if all_scores else 0.0
+        positional_bias = False
+        if first_scores and later_scores:
+            first_average = sum(first_scores) / len(first_scores)
+            later_average = sum(later_scores) / len(later_scores)
+            positional_bias = first_average > later_average + 0.05
+
+        return {
+            "positional_bias": positional_bias,
+            "leniency_bias": average_score > 0.8,
+            "severity_bias": bool(all_scores) and average_score < 0.3,
+        }
 
 
 # ---------------------------------------------------------------------------

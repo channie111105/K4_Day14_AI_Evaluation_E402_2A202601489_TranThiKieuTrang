@@ -270,19 +270,20 @@ verbosity bias và self-preference bằng cách nào?
 Chỉ làm sau khi hoàn thành 3.1–3.3. Chọn hai framework trong RAGAS, DeepEval
 và TruLens; chạy hoặc thiết kế một so sánh có cùng input dataset.
 
-| Tiêu chí | Framework 1: ____ | Framework 2: ____ |
+| Tiêu chí | Framework 1: RAGAS | Framework 2: DeepEval |
 |---|---|---|
-| Setup complexity | | |
-| Metrics available | | |
-| CI/CD integration | | |
-| Kết quả trên cùng dataset | | |
-| Insight rút ra | | |
+| Setup complexity | RAGAS: cần chuẩn hóa dataset theo question/answer/contexts/ground_truth và thường cần LLM/embedding config nếu chạy metrics đầy đủ. Setup vừa, phù hợp notebook hoặc offline eval script. | DeepEval: pytest-native hơn, dễ biến mỗi QA thành test case và assert threshold trong CI/CD. Setup nhẹ nếu team đã dùng pytest. |
+| Metrics available | RAGAS mạnh về RAG-specific metrics như faithfulness, answer relevancy, context recall, context precision. | DeepEval mạnh về unit-test style metrics như faithfulness, hallucination, answer relevancy, bias/toxicity và custom GEval rubric. |
+| CI/CD integration | Có thể chạy offline benchmark và xuất report, nhưng cần thêm adapter để fail build theo threshold. | Tích hợp CI/CD tự nhiên hơn vì test failures có thể block deploy trực tiếp qua pytest/GitHub Actions. |
+| Kết quả trên cùng dataset | Trên OrbitTech dataset, RAGAS-style view cho thấy retrieval khá tốt: avg Context Recall 0.912, Context Precision 0.985, nhưng Completeness thấp 0.661. | DeepEval-style assertions sẽ dễ block các cases fail như A01, H05, A02, H03 bằng threshold theo từng metric hoặc rubric. |
+| Insight rút ra | RAGAS phù hợp nhất để chẩn đoán retriever vs generator bằng metrics pipeline. | DeepEval phù hợp nhất để biến benchmark thành quality gate lặp lại trong release workflow. |
 
 - Scores có nhất quán không?
 - Framework nào strict hơn và vì sao?
 - Hai framework có tìm ra cùng failure cases không?
 
 > *Phân tích:*
+Hai framework có thể dùng cùng input gồm question, actual answer, expected answer và retrieved contexts. RAGAS sẽ cho insight tốt hơn về nguyên nhân retrieval/generation vì tách Context Recall, Context Precision, Faithfulness và Relevance. DeepEval strict hơn ở góc CI/CD vì mỗi case có thể thành assertion rõ ràng; một failure high-risk như prompt injection hoặc privacy leak có thể fail build ngay cả khi average score vẫn ổn. Trên dataset này, cả hai framework nhiều khả năng cùng phát hiện A01, H05 và A02 là nhóm cần review, nhưng RAGAS giúp thấy H05 là generation-completeness issue trong khi A01 có cả retrieval/scope-routing issue.
 
 ### Exercise 3.5 — Retrieval Reranking (Bonus +5)
 
@@ -297,20 +298,20 @@ thay đổi Context Recall hay không.
 
 | ID | Recall before | Recall after | Precision before | Precision after | Delta Precision |
 |---|---:|---:|---:|---:|---:|
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| **Avg** | | | | | |
+| H05 | 1.000 | 1.000 | 0.887 | 1.000 | +0.113 |
+| A03 | 0.684 | 0.684 | 0.917 | 1.000 | +0.083 |
+| M06 | 0.967 | 0.967 | 0.950 | 1.000 | +0.050 |
+| H03 | 1.000 | 1.000 | 0.950 | 1.000 | +0.050 |
+| A01 | 0.222 | 0.222 | 1.000 | 1.000 | +0.000 |
+| **Avg** | 0.775 | 0.775 | 0.941 | 1.000 | +0.059 |
 
 **Tại sao Recall dự kiến không đổi?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Recall không đổi vì reranking chỉ thay đổi thứ tự của cùng một tập retrieved chunks, không thêm hoặc xóa chunk nào. Context Recall được tính trên union tokens của toàn bộ chunks, nên nếu tập chunks giữ nguyên thì coverage của expected answer cũng giữ nguyên.
 
 **Khi nào reranking không đủ và cần sửa retriever/query/chunking?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Reranking không đủ khi evidence cần thiết hoàn toàn không nằm trong top-k retrieved chunks, như A01 có Recall chỉ 0.222 vì thiếu scope evidence từ `00_system_scope.md`. Khi đó cần sửa query rewriting, intent routing, chunking, source boosting hoặc top-k retrieval thay vì chỉ đổi thứ tự chunks hiện có.
 
 ---
 

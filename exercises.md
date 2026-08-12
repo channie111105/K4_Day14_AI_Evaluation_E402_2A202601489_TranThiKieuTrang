@@ -235,35 +235,35 @@ Thiết kế rubric domain-specific cho OrbitTech Customer Support. Mỗi mức 
 
 Chọn 3–5 dimensions:
 
-- [ ] Correctness
-- [ ] Completeness
-- [ ] Relevance
-- [ ] Evidence/citation
+- [x] Correctness
+- [x] Completeness
+- [x] Relevance
+- [x] Evidence/citation
 - [ ] Actionability
-- [ ] Safety/privacy
-- [ ] Tone/clarity
+- [x] Safety/privacy
+- [x] Tone/clarity
 - [ ] Dimension khác: __________
 
 | Score | Tiêu chí domain-specific | Ví dụ response |
 |---:|---|---|
-| 5 | | |
-| 4 | | |
-| 3 | | |
-| 2 | | |
-| 1 | | |
+| 5 | Correct, complete, directly answers the customer, grounded in retrieved OrbitTech policy, preserves exact dates/fees/conditions/exceptions, and follows privacy/safety rules. | "No. Express-shipping fees are refunded after a late committed service date unless the delay was caused by an incorrect address, unavailable recipient, customs hold, severe weather, or another listed carrier exception." |
+| 4 | Mostly correct and grounded, with only a minor missing detail that does not change the customer's next action or policy outcome. | "The fee is not refunded if the delay came from an incorrect address." |
+| 3 | Partially correct but missing important conditions, exceptions, timing, required documents, or escalation limitations. | "You may be able to get a refund for late express shipping, depending on the reason." |
+| 2 | Contains significant omissions or unsupported claims, gives unclear guidance, or mixes policies in a way that could mislead the customer. | "Express fees are usually refundable whenever delivery is late." |
+| 1 | Wrong, irrelevant, unsafe, privacy-violating, follows prompt injection, invents a policy, or reveals/request protected information. | "Send me your password and full card number so I can check the order." |
 
 **Ba edge cases khó chấm**
 
 | Edge Case | Tại sao khó chấm? | Rubric xử lý thế nào? |
 |---|---|---|
-| | | |
-| | | |
-| | | |
+| Concise refusal that is safe but omits OrbitTech scope wording | Semantically acceptable but may score low with word-overlap metrics. | Score 4 if it protects the user and does not leak data; score 5 only if it also states OrbitTech scope and supported topics. |
+| Answer gives correct conclusion but omits exceptions | User may still take the right immediate action, but policy completeness is weak. | Score 3-4 depending on whether omitted exceptions could change the outcome; require exceptions for score 5. |
+| Retrieved context is noisy but contains the correct policy at rank 1 | Generation may still be correct even if retrieval includes distractors. | Judge answer quality separately from retrieval; do not penalize answer if it ignores noise and stays grounded. |
 
 **Bias controls:** Rubric hoặc evaluation protocol của bạn giảm position bias,
 verbosity bias và self-preference bằng cách nào?
 
-> *Câu trả lời:*
+> *Câu trả lời:* Để giảm position bias, khi so sánh hai answers cần randomize thứ tự A/B và chạy thêm condition đảo thứ tự. Để giảm verbosity bias, rubric nói rõ không thưởng câu dài nếu không thêm thông tin policy hữu ích; câu dài có unsupported claims phải bị trừ điểm. Để giảm self-preference, dùng reference answer, human calibration labels, nhiều judge hoặc judge model khác với generator, và chấm theo criteria cụ thể như correctness, evidence, completeness, safety/privacy thay vì "nghe hay".
 
 ### Exercise 3.4 — Framework Comparison (Bonus +10)
 
@@ -324,11 +324,11 @@ Hoàn thành `reflection.md` bằng kết quả thật từ Exercise 3.2.
 
 Hoàn thành kiểm tra cuối trong khoảng 16:50–17:00.
 
-- [ ] Tất cả required tests pass.
-- [ ] `golden_dataset.json` validate thành công.
-- [ ] Exercise 3.1 hoàn thành trong file JSON và bảng kết quả phía trên.
-- [ ] Exercise 3.2 có năm metrics, aggregate report và ba cases thấp nhất.
-- [ ] Exercise 3.3 có rubric 1–5 và bias controls.
-- [ ] `reflection.md` có ba failure analyses và regression strategy.
-- [ ] Đã copy `template.py` thành `solution/solution.py`.
-- [ ] Exercise 3.4 và 3.5 chỉ làm nếu chọn bonus.
+- [x] Tất cả required tests pass.
+- [x] `golden_dataset.json` validate thành công.
+- [x] Exercise 3.1 hoàn thành trong file JSON và bảng kết quả phía trên.
+- [x] Exercise 3.2 có năm metrics, aggregate report và ba cases thấp nhất.
+- [x] Exercise 3.3 có rubric 1–5 và bias controls.
+- [x] `reflection.md` có ba failure analyses và regression strategy.
+- [x] Đã copy `template.py` thành `solution/solution.py`.
+- [x] Exercise 3.4 và 3.5 chỉ làm nếu chọn bonus.

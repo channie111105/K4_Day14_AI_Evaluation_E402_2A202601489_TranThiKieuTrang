@@ -146,31 +146,31 @@ và quyết định thiết kế, không chép lại toàn bộ QA.
 
 | Hạng mục | Kết quả |
 |---|---|
-| Tổng số records | ____ / 20 |
-| Easy | ____ / 5 |
-| Medium | ____ / 7 |
-| Hard | ____ / 5 |
-| Adversarial | ____ / 3 |
-| Source documents được sử dụng | ____ / 10 |
-| Validator status | PASS / FAIL |
+| Tổng số records | 20 / 20 |
+| Easy | 5 / 5 |
+| Medium | 7 / 7 |
+| Hard | 5 / 5 |
+| Adversarial | 3 / 3 |
+| Source documents được sử dụng | 10 / 10 |
+| Validator status | PASS |
 
 **Ba case đại diện cho quyết định thiết kế**
 
 | ID | Difficulty | Source document(s) | Vì sao case phù hợp với difficulty/attack type? |
 |---|---|---|---|
-| | | | |
-| | | | |
-| | | | |
+| E01 | Easy | `01_product_catalog.md` | Factual lookup trực tiếp về thông số NovaBook 14 trong một đoạn duy nhất. |
+| H01 | Hard | `09_escalation_and_policy_updates.md` | Cần áp dụng policy version theo order-placement date, phân biệt version 1.0/2.0 và exception OrbitPlus 45-day benefit. |
+| A02 | Adversarial | `00_system_scope.md` | Kiểm tra prompt injection: user yêu cầu bỏ luật và tiết lộ hidden prompt/credentials/private notes, assistant phải từ chối theo scope/safety rule. |
 
 **Điểm khó nhất khi xây dựng expected answer hoặc evidence là gì?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Điểm khó nhất là giữ expected answer đủ ngắn nhưng vẫn bao phủ đầy đủ điều kiện, exception, ngày hiệu lực, phí và limitation trong evidence. Với các case hard, cần tránh tự suy diễn ngoài corpus và phải chọn evidence đủ cụ thể để support toàn bộ claim trong expected answer.
 
 **Xác nhận:**
 
-- [ ] Mọi claim trong expected answer đều có evidence hỗ trợ.
-- [ ] Không có questions trùng ý và không dùng kiến thức ngoài corpus.
-- [ ] `python validate_golden_dataset.py` báo `PASS`.
+- [x] Mọi claim trong expected answer đều có evidence hỗ trợ.
+- [x] Không có questions trùng ý và không dùng kiến thức ngoài corpus.
+- [x] `python validate_golden_dataset.py` báo `PASS`.
 
 ### Exercise 3.2 — Benchmark Run
 

@@ -30,11 +30,11 @@ critical.
 
 | Metric | Acceptable Low Score Scenario | Critical Low Score Scenario | Action Required |
 |---|---|---|---|
-| Faithfulness | | | |
-| Answer Relevance | | | |
-| Context Recall | | | |
-| Context Precision | | | |
-| Completeness | | | |
+| Faithfulness | Có thể chấp nhận tạm thời khi câu hỏi ngoài scope hoặc context được cung cấp rất ít, và assistant nói rõ evidence không đủ thay vì bịa. | Critical khi answer đưa ra chính sách, ngày, số tiền, điều kiện refund/warranty/privacy không có trong context hoặc trái với evidence. | Siết grounding trong prompt, thêm hallucination check, kiểm tra lại gold context và retrieved chunks. |
+| Answer Relevance | Có thể thấp với câu hỏi mơ hồ, nhiều intent, hoặc adversarial case mà assistant cần từ chối thay vì trả lời trực tiếp. | Critical khi user hỏi một vấn đề cụ thể nhưng assistant trả lời sang chủ đề khác, bỏ qua intent chính hoặc không giải quyết request. | Cải thiện intent handling, viết prompt rõ hơn, thêm examples cho câu hỏi multi-intent và adversarial. |
+| Context Recall | Có thể thấp nếu expected answer nằm ngoài scope hợp lệ hoặc câu hỏi cố tình thiếu thông tin để kiểm tra refusal. | Critical khi corpus có evidence cần thiết nhưng retriever không lấy được, làm answer thiếu hoặc sai. | Sửa chunking/query formulation, tăng top-k, thêm synonym handling hoặc cải thiện retriever. |
+| Context Precision | Có thể thấp khi retriever lấy đủ evidence nhưng câu hỏi cần nhiều tài liệu nên có thêm noise ở cuối ranking. | Critical khi các chunk liên quan bị đẩy xuống sau nhiều chunk nhiễu, khiến generator dùng sai context hoặc bỏ sót evidence. | Thêm reranking, điều chỉnh scoring/ranking, giảm chunk noise và kiểm tra top-k. |
+| Completeness | Có thể thấp khi assistant cố ý trả lời ngắn vì evidence không đủ hoặc câu hỏi chỉ yêu cầu một phần nhỏ của policy. | Critical khi answer bỏ sót điều kiện, exception, deadline, fee hoặc bước hành động quan trọng mà expected answer yêu cầu. | Tăng yêu cầu trả lời đủ điều kiện trong prompt, cải thiện retrieval coverage, thêm few-shot complete answers. |
 
 ### Exercise 1.2 — Bias trong LLM-as-a-Judge
 
@@ -46,15 +46,15 @@ Ba bias thường gặp:
 
 **Câu 1: Thiết kế experiment phát hiện position bias với ít nhất hai conditions.**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Tạo một tập câu hỏi có reference answer và hai candidate answers cho mỗi câu: một answer tốt hơn và một answer kém hơn. Condition 1 đặt answer tốt ở vị trí A và answer kém ở vị trí B. Condition 2 giữ nguyên nội dung nhưng đảo thứ tự, answer kém ở A và answer tốt ở B. Nếu judge thường cho điểm cao hơn cho answer đứng trước dù nội dung không đổi, hoặc tỷ lệ thắng của vị trí A cao bất thường sau khi đảo thứ tự, đó là dấu hiệu position bias. Có thể lặp lại với nhiều câu hỏi và randomize ID để giảm ảnh hưởng của tên nhãn.
 
 **Câu 2: Làm thế nào giảm verbosity bias bằng rubric design?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Rubric nên chấm theo correctness, grounded evidence, completeness và actionability, không chấm theo độ dài. Cần ghi rõ rằng câu trả lời dài nhưng thêm claim không có evidence, lặp ý, hoặc không trả lời đúng policy sẽ bị trừ điểm. Mức điểm cao chỉ dành cho answer đủ thông tin cần thiết, chính xác, có điều kiện/exception quan trọng và diễn đạt gọn rõ.
 
 **Câu 3: Tại sao cần calibrate LLM judge với human labels?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Human labels là mốc chuẩn để biết judge có đang quá dễ, quá nghiêm, thiên vị câu dài, hoặc hiểu sai domain hay không. Calibration giúp chỉnh rubric, threshold và prompt judge để điểm tự động gần hơn với đánh giá của người thật. Việc này đặc biệt quan trọng trong customer support vì sai chính sách refund, warranty, privacy hoặc escalation có thể gây hậu quả thực tế.
 
 ### Exercise 1.3 — Evaluation trong CI/CD
 
@@ -62,13 +62,13 @@ Ba bias thường gặp:
 
 | Metric | Threshold | Lý do |
 |---|---:|---|
-| Faithfulness | | |
-| Answer Relevance | | |
-| Completeness | | |
+| Faithfulness | 0.75 | Đây là metric quan trọng nhất để block deploy vì assistant support không được bịa chính sách, số tiền, deadline hoặc điều kiện không có trong corpus. |
+| Answer Relevance | 0.70 | Nếu relevance thấp, user không nhận được câu trả lời đúng intent; threshold này giúp chặn các thay đổi prompt/routing làm answer lạc đề. |
+| Completeness | 0.70 | Customer support cần đủ điều kiện, exception và next step; completeness thấp dễ làm user hiểu thiếu về refund, warranty, shipping hoặc security. |
 
 **Câu 2: Khi nào dùng offline evaluation, online evaluation và human review?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Offline evaluation dùng trước mỗi release, prompt change, retriever change hoặc model upgrade để so sánh với baseline trên golden dataset lặp lại được. Online evaluation dùng sau khi deploy để theo dõi traffic thật, drift, user satisfaction, latency, cost và các failure mới chưa có trong dataset. Human review dùng cho các case high-stakes hoặc khó chấm tự động như privacy/security, refund dispute, policy exception, adversarial prompt, và để calibrate LLM judge bằng nhãn của người thật.
 
 ---
 
